@@ -1,24 +1,24 @@
-use crate::core::user_agent::HTTPMethod::{
-    HTTPDelete, HTTPGet, HTTPInvalid, HTTPMimePost, HTTPPatch, HTTPPost, HTTPPut,
-};
+use crate::core::user_agent::*;
+use crate::core;
+use curl::easy as Curl;
 use std::fmt::{Display, Formatter};
 use std::str::FromStr;
 use std::string::ParseError;
 
 /// See [this webpage](https://en.wikipedia.org/wiki/List_of_HTTP_status_codes) for more info.
 enum HTTPStatusCode {
-    HTTPOk = 200,
-    HTTPCreated = 201,
-    HTTPNoContent = 204,
-    HTTPNotModified = 304,
-    HTTPBadRequest = 400,
-    HTTPUnauthorized = 401,
-    HTTPForbidden = 403,
-    HTTPNotFound = 404,
-    HTTPMethodNotAllowed = 405,
-    HTTPUnprocessableEntity = 422,
-    HTTPTooManyRequests = 429,
-    HTTPGatewayUnavailable = 502,
+    HTTPOk,
+    HTTPCreated,
+    HTTPNoContent,
+    HTTPNotModified,
+    HTTPBadRequest,
+    HTTPUnauthorized,
+    HTTPForbidden,
+    HTTPNotFound,
+    HTTPMethodNotAllowed,
+    HTTPUnprocessableEntity,
+    HTTPTooManyRequests,
+    HTTPGatewayUnavailable,
     Other(i32),
 }
 
@@ -54,13 +54,13 @@ impl FromStr for HTTPMethod {
 impl Display for HTTPMethod {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         let result = match &self {
-            HTTPMethod::HttpInvalid => "INVALID_HTTP_METHOD",
-            HTTPMethod::HttpDelete => "DELETE",
-            HTTPMethod::HttpGet => "GET",
-            HTTPMethod::HttpPost => "POST",
-            HTTPMethod::HttpMimePost => "MIMEPOST",
-            HTTPMethod::HttpPatch => "PATCH",
-            HTTPMethod::HttpPut => "PUT",
+            HTTPMethod::HTTPInvalid => "INVALID_HTTP_METHOD",
+            HTTPMethod::HTTPDelete => "DELETE",
+            HTTPMethod::HTTPGet => "GET",
+            HTTPMethod::HTTPPost => "POST",
+            HTTPMethod::HTTPMimePost => "MIMEPOST",
+            HTTPMethod::HTTPPatch => "PATCH",
+            HTTPMethod::HTTPPut => "PUT",
         };
 
         write!(f, "{}", result)
@@ -78,16 +78,16 @@ impl Display for HTTPStatusCode {
             HTTPStatusCode::HTTPUnauthorized => "UNAUTHORIZED",
             HTTPStatusCode::HTTPForbidden => "FORBIDDEN",
             HTTPStatusCode::HTTPNotFound => "NOT_FOUND",
-            HTTPStatusCode::HTTPMethodNotAllowed => "METHOD_NOT_ALLOWED",
+            HTTPStatusCode::HTTPMethodNotAllowed => "METHOD_NOT_99LOWED",
             HTTPStatusCode::HTTPUnprocessableEntity => "UNPROCESSABLE_ENTITY",
             HTTPStatusCode::HTTPTooManyRequests => "TOO_MANY_REQUESTS",
             HTTPStatusCode::HTTPGatewayUnavailable => "GATEWAY_UNAVAILABLE",
-            HTTPStatusCode::Other(code) => match code {
-                100..200 => "1xx_INFO",
-                200..300 => "2xx_SUCCESS",
-                300..400 => "3xx_REDIRECTING",
-                400..500 => "4xx_CLIENT_ERROR",
-                500..600 => "5xx_SERVER_ERROR",
+            HTTPStatusCode::Other(code) => match *code {
+                100..=199 => "1xx_INFO",
+                200..=299 => "2xx_SUCCESS",
+                300..=399 => "3xx_REDIRECTING",
+                400..=499 => "4xx_CLIENT_ERROR",
+                500..=599 => "5xx_SERVER_ERROR",
                 _ => "UNUSUAL_HTTP_CODE",
             },
         };
@@ -113,11 +113,11 @@ impl HTTPStatusCode {
             HTTPStatusCode::Other(code) => {
                 match code {
                     0 => String::from("Curl couldn't fetch a HTTP response."),
-                    100..200 => String::from("The request was received, understood and accepted. The client must wait for a final response."),
-                    200..300 => String::from("The action request was received, understood, and accepted."),
-                    300..400 => String::from("Client requires taking additional action to complete the request."),
-                    400..500 => String::from("Client side error, request couldn't be processed."),
-                    500..600 => String::from("The server had an error processing your request."),
+                    100..=199 => String::from("The request was received, understood and accepted. The client must wait for a final response."),
+                    200..=299 => String::from("The action request was received, understood, and accepted."),
+                    300..=399 => String::from("Client requires taking additional action to complete the request."),
+                    400..=499 => String::from("Client side error, request couldn't be processed."),
+                    500..=599 => String::from("The server had an error processing your request."),
                     _ => String::from("Unusual HTTP method.")
                 }
             }
@@ -125,10 +125,22 @@ impl HTTPStatusCode {
     }
 }
 
-struct UAConnection {
+struct UAInfo {
+    //loginfo
+    // NOT RUST CORE, ACCORD CORE!
+    code: Option<core::Error>,
+    http_code: HTTPStatusCode,
+    // header: UAResponseHeader,
+    // body: UAResponseBody,
+}
+
+struct UAConnection<CB> 
+where
+CB: Fn(mime_info: curl::easy::)
+{
     user_agent: Box<UserAgent>,
     easy_handle: Box<Curl::Easy>,
-    info: UAInfo,
+    //  info: UAInfo,
     url: String,
     // TODO: header: &curl_slist
     // TODO: https://github.com/Cogmasters/concord/blob/master/core/user-agent.c#L62 implement this???
@@ -138,13 +150,13 @@ struct UAConnection {
 }
 // this needs to be mutex'd
 struct UAConnectionQueue {
-    idle: queue,
-    busy: queue,
+    //idle: queue,
+    //busy: queue,
     total: i32,
 }
 
 struct UserAgent {
-    ua_conn_queue: Box<conq>,
+    ua_conn_queue: Mutex<Box<UAConnectionQueue>>,
     base_url: String,
     // logconf
 
