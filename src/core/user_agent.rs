@@ -1,36 +1,35 @@
-use crate::core::user_agent::*;
+use std::sync::Mutex;
 use crate::core;
 use curl::easy as Curl;
 use std::fmt::{Display, Formatter};
 use std::str::FromStr;
-use std::string::ParseError;
 
 /// See [this webpage](https://en.wikipedia.org/wiki/List_of_HTTP_status_codes) for more info.
 enum HTTPStatusCode {
-    HTTPOk,
-    HTTPCreated,
-    HTTPNoContent,
-    HTTPNotModified,
-    HTTPBadRequest,
-    HTTPUnauthorized,
-    HTTPForbidden,
-    HTTPNotFound,
-    HTTPMethodNotAllowed,
-    HTTPUnprocessableEntity,
-    HTTPTooManyRequests,
-    HTTPGatewayUnavailable,
+    Ok,
+    Created,
+    NoContent,
+    NotModified,
+    BadRequest,
+    Unauthorized,
+    Forbidden,
+    NotFound,
+    MethodNotAllowed,
+    UnprocessableEntity,
+    TooManyRequests,
+    GatewayUnavailable,
     Other(i32),
 }
 
 /// HTTP Methods.
 enum HTTPMethod {
-    HTTPInvalid,
-    HTTPDelete,
-    HTTPGet,
-    HTTPPost,
-    HTTPMimePost,
-    HTTPPatch,
-    HTTPPut,
+    Invalid,
+    Delete,
+    Get,
+    Post,
+    MimePost,
+    Patch,
+    Put,
 }
 
 struct ParseHTTPMethodError;
@@ -40,12 +39,12 @@ impl FromStr for HTTPMethod {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
-            "DELETE" => Ok(HTTPDelete),
-            "GET" => Ok(HTTPGet),
-            "POST" => Ok(HTTPPost),
-            "MIMEPOST" => Ok(HTTPMimePost),
-            "PATCH" => Ok(HTTPPatch),
-            "PUT" => Ok(HTTPPut),
+            "DELETE" => Ok(HTTPMethod::Delete),
+            "GET" => Ok(HTTPMethod::Get),
+            "POST" => Ok(HTTPMethod::Post),
+            "MIMEPOST" => Ok(HTTPMethod::MimePost),
+            "PATCH" => Ok(HTTPMethod::Patch),
+            "PUT" => Ok(HTTPMethod::Put),
             _ => Err(ParseHTTPMethodError),
         }
     }
@@ -54,13 +53,13 @@ impl FromStr for HTTPMethod {
 impl Display for HTTPMethod {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         let result = match &self {
-            HTTPMethod::HTTPInvalid => "INVALID_HTTP_METHOD",
-            HTTPMethod::HTTPDelete => "DELETE",
-            HTTPMethod::HTTPGet => "GET",
-            HTTPMethod::HTTPPost => "POST",
-            HTTPMethod::HTTPMimePost => "MIMEPOST",
-            HTTPMethod::HTTPPatch => "PATCH",
-            HTTPMethod::HTTPPut => "PUT",
+            HTTPMethod::Invalid => "INVALID_HTTP_METHOD",
+            HTTPMethod::Delete => "DELETE",
+            HTTPMethod::Get => "GET",
+            HTTPMethod::Post => "POST",
+            HTTPMethod::MimePost => "MIMEPOST",
+            HTTPMethod::Patch => "PATCH",
+            HTTPMethod::Put => "PUT",
         };
 
         write!(f, "{}", result)
@@ -70,18 +69,18 @@ impl Display for HTTPMethod {
 impl Display for HTTPStatusCode {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         let result = match &self {
-            HTTPStatusCode::HTTPOk => "OK",
-            HTTPStatusCode::HTTPCreated => "CREATED",
-            HTTPStatusCode::HTTPNoContent => "NO_CONTENT",
-            HTTPStatusCode::HTTPNotModified => "NOT_MODIFIED",
-            HTTPStatusCode::HTTPBadRequest => "BAD_REQUEST",
-            HTTPStatusCode::HTTPUnauthorized => "UNAUTHORIZED",
-            HTTPStatusCode::HTTPForbidden => "FORBIDDEN",
-            HTTPStatusCode::HTTPNotFound => "NOT_FOUND",
-            HTTPStatusCode::HTTPMethodNotAllowed => "METHOD_NOT_99LOWED",
-            HTTPStatusCode::HTTPUnprocessableEntity => "UNPROCESSABLE_ENTITY",
-            HTTPStatusCode::HTTPTooManyRequests => "TOO_MANY_REQUESTS",
-            HTTPStatusCode::HTTPGatewayUnavailable => "GATEWAY_UNAVAILABLE",
+            HTTPStatusCode::Ok => "OK",
+            HTTPStatusCode::Created => "CREATED",
+            HTTPStatusCode::NoContent => "NO_CONTENT",
+            HTTPStatusCode::NotModified => "NOT_MODIFIED",
+            HTTPStatusCode::BadRequest => "BAD_REQUEST",
+            HTTPStatusCode::Unauthorized => "UNAUTHORIZED",
+            HTTPStatusCode::Forbidden => "FORBIDDEN",
+            HTTPStatusCode::NotFound => "NOT_FOUND",
+            HTTPStatusCode::MethodNotAllowed => "METHOD_NOT_99LOWED",
+            HTTPStatusCode::UnprocessableEntity => "UNPROCESSABLE_ENTITY",
+            HTTPStatusCode::TooManyRequests => "TOO_MANY_REQUESTS",
+            HTTPStatusCode::GatewayUnavailable => "GATEWAY_UNAVAILABLE",
             HTTPStatusCode::Other(code) => match *code {
                 100..=199 => "1xx_INFO",
                 200..=299 => "2xx_SUCCESS",
@@ -98,18 +97,18 @@ impl Display for HTTPStatusCode {
 impl HTTPStatusCode {
     fn reason(&self) -> String {
         match &self {
-            HTTPStatusCode::HTTPOk => String::from("The request was completed successfully."),
-            HTTPStatusCode::HTTPCreated => String::from("The entity was created successfully."),
-            HTTPStatusCode::HTTPNoContent => String::from("The request completed successfully but returned no content."),
-            HTTPStatusCode::HTTPNotModified => String::from("The entity was not modified (no action was taken)."),
-            HTTPStatusCode::HTTPBadRequest => String::from("The request was improperly formatted, or the server couldn't understand it."),
-            HTTPStatusCode::HTTPUnauthorized => String::from("The authorization header was missing or invalid."),
-            HTTPStatusCode::HTTPForbidden => String::from("The authorization token you passed did not have permission to the resource."),
-            HTTPStatusCode::HTTPNotFound => String::from("The resource at the location specified doesn't exist."),
-            HTTPStatusCode::HTTPMethodNotAllowed => String::from("The HTTP method used is not valid for the location specified."),
-            HTTPStatusCode::HTTPUnprocessableEntity => String::from("The entity was unprocessable."),
-            HTTPStatusCode::HTTPTooManyRequests => String::from("You got rate-limited."),
-            HTTPStatusCode::HTTPGatewayUnavailable => String::from("There was not a gateway available to process your request. Wait a bit and retry."),
+            HTTPStatusCode::Ok => String::from("The request was completed successfully."),
+            HTTPStatusCode::Created => String::from("The entity was created successfully."),
+            HTTPStatusCode::NoContent => String::from("The request completed successfully but returned no content."),
+            HTTPStatusCode::NotModified => String::from("The entity was not modified (no action was taken)."),
+            HTTPStatusCode::BadRequest => String::from("The request was improperly formatted, or the server couldn't understand it."),
+            HTTPStatusCode::Unauthorized => String::from("The authorization header was missing or invalid."),
+            HTTPStatusCode::Forbidden => String::from("The authorization token you passed did not have permission to the resource."),
+            HTTPStatusCode::NotFound => String::from("The resource at the location specified doesn't exist."),
+            HTTPStatusCode::MethodNotAllowed => String::from("The HTTP method used is not valid for the location specified."),
+            HTTPStatusCode::UnprocessableEntity => String::from("The entity was unprocessable."),
+            HTTPStatusCode::TooManyRequests => String::from("You got rate-limited."),
+            HTTPStatusCode::GatewayUnavailable => String::from("There was not a gateway available to process your request. Wait a bit and retry."),
             HTTPStatusCode::Other(code) => {
                 match code {
                     0 => String::from("Curl couldn't fetch a HTTP response."),
@@ -134,13 +133,11 @@ struct UAInfo {
     // body: UAResponseBody,
 }
 
-struct UAConnection<CB> 
-where
-CB: Fn(mime_info: curl::easy::)
+struct UAConnection<> 
 {
     user_agent: Box<UserAgent>,
     easy_handle: Box<Curl::Easy>,
-    //  info: UAInfo,
+    info: UAInfo,
     url: String,
     // TODO: header: &curl_slist
     // TODO: https://github.com/Cogmasters/concord/blob/master/core/user-agent.c#L62 implement this???
